@@ -1,14 +1,23 @@
 ---
 sidebar: false
 outline: false
+search: false
 ---
 
 # Java 后端知识库
 
-面向 Java 后端面试，围绕业务问题组织知识：先说结论，再解释原因，最后回答边界与取舍。
+两套内容独立的 Java 后端知识库。选择适合当前阅读目的的入口，每套都有自己的正文、目录和搜索范围。
 
-MySQL 已整理为完整专题。Redis、RabbitMQ 和 Spring Boot 预留独立入口，后续逐步补充。
+## 业务型知识库
 
-从 [MySQL 阅读路线](/mysql/) 开始；面试前可直接看 [高频速记](/mysql/12-review)。顶部搜索支持查找知识点。
+围绕业务问题、方案选择和故障排查组织内容，适合按问题查阅与准备场景面试。
 
-<KnowledgeCatalog />
+[进入业务型知识库](/business/) · [阅读 MySQL](/mysql/)
+
+## 知识体系型知识库
+
+参考原始资料的目录，按知识点解释概念、机制与联系，适合系统阅读和复习。
+
+[进入知识体系型知识库](/knowledge/) · [阅读 MySQL](/knowledge/mysql/)
+
+两套 MySQL 均已整理。Redis、RabbitMQ、Spring Boot 暂为独立预留入口。首页搜索覆盖两套内容，进入知识库后只搜索当前风格。

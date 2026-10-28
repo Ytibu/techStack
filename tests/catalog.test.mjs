@@ -2,7 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, writeFileSync, unlinkSync, rmSync } from 'node:fs'
 import { resolve, join, sep } from 'node:path'
-import { readCatalog } from '../docs/.vitepress/catalog.mjs'
+import { readCatalog, readLibraries } from '../docs/.vitepress/catalog.mjs'
+import { libraryForPath, switchLibrary, searchInCurrentLibrary } from '../docs/.vitepress/libraries.mjs'
 
 function fixture(t) {
   const workspace = resolve('.work')
@@ -70,4 +71,41 @@ test('正确处理 index 后缀文件、中文路径、frontmatter 与隐藏资�
   assert.equal(catalog[0].items.length, 2)
   assert.deepEqual(catalog[0].items.find(item => item.link === '/mysql/myindex'), { text: '真正标题', link: '/mysql/myindex' })
   assert.ok(catalog[0].items.some(item => item.link === '/mysql/中文'))
+})
+
+test('两套知识库分别发现内容，保持原业务地址并支持原资料的嵌套目录', t => {
+  const { root, write } = fixture(t)
+  write('business/index.md', '# 业务入口')
+  write('mysql/index.md', '# 业务 MySQL')
+  write('knowledge/index.md', '# 知识入口')
+  write('knowledge/mysql/index.md', '# 体系 MySQL')
+  write('knowledge/mysql/01-basics/index.md', '# 基础篇')
+  write('knowledge/mysql/01-basics/01-overview.md', '# 1. 概述')
+  let libraries = readLibraries(root)
+  assert.deepEqual(libraries.business.map(item => item.id), ['mysql'])
+  assert.equal(libraries.business[0].link, '/mysql/')
+  assert.equal(libraries.knowledge[0].link, '/knowledge/mysql/')
+  assert.equal(libraries.knowledge[0].items[1].text, '基础篇')
+  write('knowledge/mysql/01-basics/02-sql.md', '# 2. SQL')
+  libraries = readLibraries(root)
+  assert.equal(libraries.knowledge[0].items[1].items[2].link, '/knowledge/mysql/01-basics/02-sql')
+  assert.equal(libraries.business[0].items.length, 1)
+  assert.equal(switchLibrary('/knowledge/mysql/01-basics/02-sql', libraries), '/mysql/')
+  assert.equal(switchLibrary('/mysql/04-index-design', libraries), '/knowledge/mysql/')
+  assert.equal(switchLibrary('/redis/', libraries), '/knowledge/')
+})
+
+test('搜索按当前知识库过滤，首页可查两套，同主题切换不依赖另一套正文', t => {
+  const previous = globalThis.window
+  t.after(() => { if (previous === undefined) delete globalThis.window; else globalThis.window = previous })
+  const results = [{ id: '/mysql/04-index-design.html#section' }, { id: '/knowledge/mysql/02-advanced/02-indexes/04-use.html#section' }]
+  globalThis.window = { location: { pathname: '/knowledge/mysql/' } }
+  assert.deepEqual(results.filter(searchInCurrentLibrary), [results[1]])
+  window.location.pathname = '/mysql/04-index-design'
+  assert.deepEqual(results.filter(searchInCurrentLibrary), [results[0]])
+  window.location.pathname = '/'
+  assert.equal(results.filter(searchInCurrentLibrary).length, 2)
+  assert.equal(libraryForPath('/'), null)
+  assert.equal(libraryForPath('/knowledge/mysql/'), 'knowledge')
+  assert.equal(libraryForPath('/business/'), 'business')
 })

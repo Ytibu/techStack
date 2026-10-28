@@ -13,40 +13,48 @@ function title(path) {
   return source.match(/^#\s+(.+)$/m)?.[1].trim() ?? path.split(/[\\/]/).at(-1).replace(/\.md$/, '')
 }
 
-function link(path, root) {
+function link(path, root, prefix) {
   const route = relative(root, path).replaceAll('\\', '/')
-  return '/' + (route.endsWith('/index.md') ? route.slice(0, -8) : route.slice(0, -3))
+  return prefix + '/' + (route.endsWith('/index.md') ? route.slice(0, -8) : route.slice(0, -3))
 }
 
-function scan(directory, root) {
+function scan(directory, root, prefix) {
   return readdirSync(directory, { withFileTypes: true })
     .filter(entry => !entry.name.startsWith('.') && entry.name !== 'public')
     .sort((a, b) => (a.name === 'index.md' ? -1 : b.name === 'index.md' ? 1 : collator.compare(a.name, b.name)))
     .flatMap(entry => {
       const path = join(directory, entry.name)
       if (entry.isDirectory()) {
-        const items = scan(path, root)
+        const items = scan(path, root, prefix)
         if (!items.length) return []
         const index = join(path, 'index.md')
         return [{ text: existsSync(index) ? title(index) : entry.name, collapsed: false, items }]
       }
-      return entry.name.endsWith('.md') ? [{ text: title(path), link: link(path, root) }] : []
+      return entry.name.endsWith('.md') ? [{ text: title(path), link: link(path, root, prefix) }] : []
     })
 }
 
-export function readCatalog(root = docsRoot) {
+export function readCatalog(root = docsRoot, prefix = '') {
+  if (!existsSync(root)) return []
   return readdirSync(root, { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'public')
+    .filter(entry => entry.isDirectory() && !entry.name.startsWith('.') && !['public', 'business', 'knowledge'].includes(entry.name))
     .sort((a, b) => {
       const rank = name => preferred.includes(name) ? preferred.indexOf(name) : preferred.length
       return rank(a.name) - rank(b.name) || collator.compare(a.name, b.name)
     })
     .flatMap(entry => {
-      const items = scan(join(root, entry.name), root)
+      const items = scan(join(root, entry.name), root, prefix)
       if (!items.length) return []
       const firstLink = nodes => nodes.flatMap(node => node.link ? [node.link] : firstLink(node.items))[0]
       return [{ id: entry.name, text: labels[entry.name] ?? entry.name, link: firstLink(items), items }]
     })
+}
+
+export function readLibraries(root = docsRoot) {
+  return {
+    business: readCatalog(root),
+    knowledge: readCatalog(join(root, 'knowledge'), '/knowledge')
+  }
 }
 
 // 只有目录或文档标题改变时才重启配置；正文编辑仍使用 VitePress 热更新。
@@ -54,14 +62,14 @@ export function watchCatalog() {
   return {
     name: 'knowledge-catalog',
     configureServer(server) {
-      let previous = JSON.stringify(readCatalog())
+      let previous = JSON.stringify(readLibraries())
       let timer
       const onChange = path => {
         const absolute = resolve(path)
         if (!absolute.startsWith(docsRoot) || !path.endsWith('.md')) return
         clearTimeout(timer)
         timer = setTimeout(() => {
-          const next = JSON.stringify(readCatalog())
+          const next = JSON.stringify(readLibraries())
           if (next === previous) return
           previous = next
           // 走 VitePress 的配置重建入口，连同本地搜索一起刷新。
