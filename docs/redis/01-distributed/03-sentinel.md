@@ -9,7 +9,7 @@ Sentinel 为主从架构提供监控、故障转移和主节点发现。它不�
 - **主观下线**：一个哨兵在规定时间内没有获得实例的有效响应，自行判断实例不可达。
 - **客观下线**：达到配置的 `quorum` 数量的哨兵认可主节点下线。
 
-客观下线与执行故障转移的授权是两件事。转移还需要选出执行者并获得多数哨兵授权，因此 quorum 达标不代表一定能完成切换。见 [Sentinel 的 quorum 说明](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/#quorum)。
+客观下线由 quorum 判定，故障转移还需选出执行者并获得不少于 quorum 且超过半数的哨兵授权。见 [Sentinel 的 quorum 说明](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/#quorum)。
 
 ### 新主选择与切换
 

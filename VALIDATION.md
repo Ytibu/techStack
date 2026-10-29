@@ -2,6 +2,12 @@
 
 最近验证日期：2026-10-29。范围为本地知识库、自动收录行为、导航与文档内容来源。
 
+## Redis 内容校正（2026-10-29）
+
+- 按最小解释原则修正 9 篇正文，覆盖审核报告全部 R1～R6、S1～S3，保留原章节结构；依据与逐项复核见 [审核报告](./audits/redis-content-audit-2026-10-29.md)。
+- `npm test` 的 7 项目录与搜索测试、`npm run build` 和 `git diff --check` 均通过，未新增依赖。
+- 本轮未重复浏览器验收，也未运行 Redis、OpenResty、Canal 或 Java 工程，内容依据核对不等同于服务端运行验证。
+
 ## 首页与技术栈导航（2026-10-29）
 
 - 顶部移除独立的“业务型”“知识体系型”总入口，改为“首页、MySQL（业务型）、Redis、RabbitMQ、Spring Boot”。MySQL 名称链接到 `/knowledge/mysql/`，括号中的业务型链接到 `/mysql/`，两个链接可独立点击。

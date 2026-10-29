@@ -7,7 +7,7 @@
 | `TYPE key` | 查看值的逻辑类型 |
 | `EXISTS key` | 判断键是否存在 |
 | `DEL key` | 删除键，释放大对象可能阻塞 |
-| `UNLINK key` | 从键空间移除，后台回收内存 |
+| `UNLINK key` | 移除键，按对象释放成本与引用计数决定是否后台回收 |
 | `EXPIRE key seconds` | 设置键的剩余有效期 |
 | `TTL key` | 剩余秒数；-1 为无过期时间，-2 为不存在 |
 | `SCAN cursor MATCH pattern COUNT count` | 游标遍历，COUNT 是工作量提示，不保证每批数量 |

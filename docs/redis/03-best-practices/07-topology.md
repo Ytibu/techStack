@@ -25,6 +25,6 @@
 
 ## 命令、Lua 与事务
 
-Cluster 支持满足同槽要求的多键命令、Lua 和事务，不能简化为“集群不能使用 Lua 或事务”。跨槽拆分执行则无法保留同一原子操作的语义。
+Cluster 支持同槽多键命令、Lua 和事务，但迁槽期间仍可能返回 `TRYAGAIN`，客户端需处理重试或失败。跨槽拆分执行则无法保留同一原子操作的语义。
 
 Redis 事务把排队命令按序执行，运行时某条命令出错不会自动回滚之前的命令。不要把同槽事务进一步理解为关系型数据库的完整事务能力。见 [Cluster 规范](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/)与[事务说明](https://redis.io/docs/latest/develop/using-commands/transactions/)。

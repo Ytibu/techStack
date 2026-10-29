@@ -17,7 +17,7 @@ Redis 记录带过期时间键的到期信息。到期后，正常访问应按�
 
 | 策略 | 候选范围 | 选择依据 |
 | --- | --- | --- |
-| `noeviction` | 不主动淘汰 | 内存不足时拒绝需要额外内存的相关写入 |
+| `noeviction` | 不主动淘汰 | 超出 maxmemory 时按命令类别拒绝受限操作，缩短值的 SET 也可能被拒绝 |
 | `volatile-ttl` | 带 TTL 的键 | 更早到期者优先 |
 | `volatile-random` | 带 TTL 的键 | 随机 |
 | `allkeys-random` | 全部键 | 随机 |

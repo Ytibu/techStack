@@ -8,6 +8,8 @@
 - 会话、计数和业务状态等数据需要单独评估，不能因“用了 Redis”就一律不持久化。
 - RDB、AOF 与备份应配合恢复目标选择，不能笼统地固定为“永远关闭 RDB”。
 
+关闭持久化的主节点若自动重启为空库，可能使从节点也[同步为空库](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/#safety-of-replication-when-master-has-persistence-turned-off)，使用 Sentinel 时同样需控制重启与恢复顺序。
+
 ## 控制重写与刷盘成本
 
 设置合适的 AOF 重写阈值，避免频繁生成新文件；观察重写时的延迟、写时复制内存与磁盘负载。给主机预留内存，避免把 `maxmemory` 设为整台机器的全部物理内存。
