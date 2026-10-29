@@ -92,7 +92,7 @@ test('两套知识库分别发现内容，保持原业务地址并支持原资�
   assert.equal(libraries.business[0].items.length, 1)
   assert.equal(switchLibrary('/knowledge/mysql/01-basics/02-sql', libraries), '/mysql/')
   assert.equal(switchLibrary('/mysql/04-index-design', libraries), '/knowledge/mysql/')
-  assert.equal(switchLibrary('/redis/', libraries), '/knowledge/')
+  assert.equal(switchLibrary('/redis/', libraries), '/redis/')
 })
 
 test('搜索按当前知识库过滤，首页可查两套，同主题切换不依赖另一套正文', t => {
@@ -108,4 +108,42 @@ test('搜索按当前知识库过滤，首页可查两套，同主题切换不�
   assert.equal(libraryForPath('/'), null)
   assert.equal(libraryForPath('/knowledge/mysql/'), 'knowledge')
   assert.equal(libraryForPath('/business/'), 'business')
+})
+
+test('Redis 只收录一套正文，两边入口复用相同目录并可自动发现新增文章', t => {
+  const { root, write } = fixture(t)
+  write('mysql/index.md', '# MySQL')
+  write('redis/index.md', '# Redis 知识库')
+  write('redis/01-distributed/index.md', '# 分布式缓存')
+  write('redis/01-distributed/01-persistence.md', '# 1. Redis 持久化')
+  write('knowledge/mysql/index.md', '# MySQL 知识体系')
+  write('knowledge/redis/index.md', '# Redis 原入口')
+  let libraries = readLibraries(root)
+  const redis = catalog => catalog.find(topic => topic.id === 'redis')
+  assert.deepEqual(libraries.knowledge.map(topic => topic.id), ['mysql', 'redis'])
+  assert.deepEqual(redis(libraries.knowledge), redis(libraries.business))
+  assert.equal(redis(libraries.knowledge).link, '/redis/')
+  assert.equal(switchLibrary('/knowledge/redis/', libraries), '/redis/')
+  write('redis/01-distributed/02-replication.md', '# 2. Redis 主从')
+  libraries = readLibraries(root)
+  assert.equal(redis(libraries.knowledge).items[1].items.at(-1).link, '/redis/01-distributed/02-replication')
+})
+
+test('共享 Redis 可从两种风格搜索，Redis 页面只显示本专题结果', t => {
+  const previous = globalThis.window
+  t.after(() => { if (previous === undefined) delete globalThis.window; else globalThis.window = previous })
+  const business = { id: '/mysql/06-transactions.html#section' }
+  const knowledge = { id: '/knowledge/mysql/01-basics/06-transactions.html#section' }
+  const redis = { id: '/redis/01-distributed/01-persistence.html#section' }
+  const results = [business, knowledge, redis]
+  globalThis.window = { location: { pathname: '/knowledge/mysql/' } }
+  assert.deepEqual(results.filter(searchInCurrentLibrary), [knowledge, redis])
+  window.location.pathname = '/mysql/'
+  assert.deepEqual(results.filter(searchInCurrentLibrary), [business, redis])
+  for (const path of ['/redis/', '/redis/04-internals/05-resp', '/knowledge/redis/']) {
+    window.location.pathname = path
+    assert.deepEqual(results.filter(searchInCurrentLibrary), [redis])
+  }
+  window.location.pathname = '/'
+  assert.deepEqual(results.filter(searchInCurrentLibrary), results)
 })

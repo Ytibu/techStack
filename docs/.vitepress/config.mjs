@@ -3,18 +3,19 @@ import { readLibraries, watchCatalog } from './catalog.mjs'
 import { searchInCurrentLibrary } from './libraries.mjs'
 
 const libraries = readLibraries()
+const topics = [...new Map([...libraries.business, ...libraries.knowledge].map(topic => [topic.id, topic])).values()]
 
 export default defineConfig({
   lang: 'zh-CN',
   title: 'Java 后端知识库',
-  description: '面向 Java 后端的业务型与知识体系型独立知识库',
+  description: 'Java 后端知识库：MySQL 双风格与统一的 Redis 复习内容',
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }]],
   cleanUrls: true,
   themeConfig: {
     nav: [
       { text: '首页', link: '/' },
-      { text: '业务型', link: '/business/', activeMatch: '^/(?!knowledge/|$)' },
-      { text: '知识体系型', link: '/knowledge/', activeMatch: '^/knowledge/' }
+      { component: 'MySQLNav' },
+      ...topics.filter(topic => topic.id !== 'mysql').map(topic => ({ text: topic.text, link: topic.link }))
     ],
     sidebar: Object.fromEntries(Object.entries(libraries).flatMap(([library, topics]) => topics.map(topic => [`${library === 'knowledge' ? '/knowledge' : ''}/${topic.id}/`, topic.items]))),
     outline: { level: [2, 3], label: '本页目录' },

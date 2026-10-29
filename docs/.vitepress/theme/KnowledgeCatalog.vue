@@ -7,7 +7,7 @@ import CatalogTree from './CatalogTree.vue'
 const props = defineProps({ topic: String, section: String, library: { type: String, default: 'business' } })
 const topics = computed(() => props.topic ? data[props.library].filter(item => item.id === props.topic) : data[props.library])
 function items(section) {
-  const base = `${props.library === 'knowledge' ? '/knowledge' : ''}/${section.id}/`
+  const base = section.link.endsWith('/') ? section.link : `${props.library === 'knowledge' ? '/knowledge' : ''}/${section.id}/`
   if (!props.section) return section.items.filter(item => item.link !== base)
   const find = nodes => {
     for (const node of nodes) {

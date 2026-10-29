@@ -5,14 +5,15 @@ import { data } from '../catalog.data.mjs'
 import { libraryForPath, topicForPath, switchLibrary } from '../libraries.mjs'
 const route = useRoute()
 const library = computed(() => libraryForPath(route.path))
-const label = computed(() => library.value === 'knowledge' ? '知识体系型' : '业务型')
+const sharedRedis = computed(() => topicForPath(route.path) === 'redis')
+const label = computed(() => sharedRedis.value ? 'Redis' : library.value === 'knowledge' ? '知识体系型' : '业务型')
 </script>
 
 <template>
   <nav v-if="library" class="library-context" aria-label="知识库与技术栈">
     <div class="library-heading">
       <strong>{{ label }}知识库</strong>
-      <a :href="withBase(switchLibrary(route.path, data))">切换到{{ library === 'knowledge' ? '业务型' : '知识体系型' }}</a>
+      <a v-if="!sharedRedis" :href="withBase(switchLibrary(route.path, data))">切换到{{ library === 'knowledge' ? '业务型' : '知识体系型' }}</a>
     </div>
     <div class="library-topics">
       <a v-for="topic in data[library]" :key="topic.id" :href="withBase(topic.link)" :aria-current="topic.id === topicForPath(route.path) ? 'page' : undefined">{{ topic.text }}</a>

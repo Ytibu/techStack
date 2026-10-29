@@ -51,9 +51,17 @@ export function readCatalog(root = docsRoot, prefix = '') {
 }
 
 export function readLibraries(root = docsRoot) {
+  const business = readCatalog(root)
+  const sharedRedis = business.find(topic => topic.id === 'redis')
+  let knowledge = readCatalog(join(root, 'knowledge'), '/knowledge')
+  if (sharedRedis) {
+    knowledge = knowledge.filter(topic => topic.id !== 'redis').concat(sharedRedis)
+    const rank = id => preferred.includes(id) ? preferred.indexOf(id) : preferred.length
+    knowledge.sort((a, b) => rank(a.id) - rank(b.id) || collator.compare(a.id, b.id))
+  }
   return {
-    business: readCatalog(root),
-    knowledge: readCatalog(join(root, 'knowledge'), '/knowledge')
+    business,
+    knowledge
   }
 }
 
