@@ -2,8 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, writeFileSync, unlinkSync, rmSync } from 'node:fs'
 import { resolve, join, sep } from 'node:path'
-import { readCatalog, readLibraries } from '../docs/.vitepress/catalog.mjs'
-import { libraryForPath, switchLibrary, searchInCurrentLibrary } from '../docs/.vitepress/libraries.mjs'
+import { readCatalog } from '../docs/.vitepress/catalog.mjs'
+import { scopeForPath, searchInCurrentScope } from '../docs/.vitepress/scopes.mjs'
 
 function fixture(t) {
   const workspace = resolve('.work')
@@ -73,77 +73,86 @@ test('正确处理 index 后缀文件、中文路径、frontmatter 与隐藏资�
   assert.ok(catalog[0].items.some(item => item.link === '/mysql/中文'))
 })
 
-test('两套知识库分别发现内容，保持原业务地址并支持原资料的嵌套目录', t => {
+test('默认知识体系与可选风格独立发现，普通章节不产生第二种风格', t => {
   const { root, write } = fixture(t)
-  write('business/index.md', '# 业务入口')
-  write('mysql/index.md', '# 业务 MySQL')
-  write('knowledge/index.md', '# 知识入口')
-  write('knowledge/mysql/index.md', '# 体系 MySQL')
-  write('knowledge/mysql/01-basics/index.md', '# 基础篇')
-  write('knowledge/mysql/01-basics/01-overview.md', '# 1. 概述')
-  let libraries = readLibraries(root)
-  assert.deepEqual(libraries.business.map(item => item.id), ['mysql'])
-  assert.equal(libraries.business[0].link, '/mysql/')
-  assert.equal(libraries.knowledge[0].link, '/knowledge/mysql/')
-  assert.equal(libraries.knowledge[0].items[1].text, '基础篇')
-  write('knowledge/mysql/01-basics/02-sql.md', '# 2. SQL')
-  libraries = readLibraries(root)
-  assert.equal(libraries.knowledge[0].items[1].items[2].link, '/knowledge/mysql/01-basics/02-sql')
-  assert.equal(libraries.business[0].items.length, 1)
-  assert.equal(switchLibrary('/knowledge/mysql/01-basics/02-sql', libraries), '/mysql/')
-  assert.equal(switchLibrary('/mysql/04-index-design', libraries), '/knowledge/mysql/')
-  assert.equal(switchLibrary('/redis/', libraries), '/redis/')
+  write('mysql/index.md', '---\ndescription: 索引与事务。\n---\n# MySQL 知识体系')
+  write('mysql/01-basics/index.md', '# 基础篇')
+  write('mysql/01-basics/01-overview.md', '# 概述')
+  assert.equal(readCatalog(root)[0].styles.length, 0)
+  write('mysql/scenarios/index.md', '---\nstyle: 业务型\n---\n# MySQL 业务')
+  write('mysql/scenarios/01-orders.md', '# 订单一致性')
+  let topic = readCatalog(root)[0]
+  assert.equal(topic.link, '/mysql/')
+  assert.equal(topic.description, '索引与事务。')
+  assert.deepEqual(topic.items.map(item => item.text), ['MySQL 知识体系', '基础篇'])
+  assert.equal(topic.styles[0].text, '业务型')
+  assert.equal(topic.styles[0].link, '/mysql/scenarios/')
+  assert.equal(topic.styles[0].items[1].link, '/mysql/scenarios/01-orders')
+  write('mysql/scenarios/02-payments.md', '# 支付回调')
+  topic = readCatalog(root)[0]
+  assert.equal(topic.styles[0].items.at(-1).link, '/mysql/scenarios/02-payments')
+  assert.equal(topic.items.length, 2)
 })
 
-test('搜索按当前知识库过滤，首页可查两套，同主题切换不依赖另一套正文', t => {
-  const previous = globalThis.window
-  t.after(() => { if (previous === undefined) delete globalThis.window; else globalThis.window = previous })
-  const results = [{ id: '/mysql/04-index-design.html#section' }, { id: '/knowledge/mysql/02-advanced/02-indexes/04-use.html#section' }]
-  globalThis.window = { location: { pathname: '/knowledge/mysql/' } }
-  assert.deepEqual(results.filter(searchInCurrentLibrary), [results[1]])
-  window.location.pathname = '/mysql/04-index-design'
-  assert.deepEqual(results.filter(searchInCurrentLibrary), [results[0]])
-  window.location.pathname = '/'
-  assert.equal(results.filter(searchInCurrentLibrary).length, 2)
-  assert.equal(libraryForPath('/'), null)
-  assert.equal(libraryForPath('/knowledge/mysql/'), 'knowledge')
-  assert.equal(libraryForPath('/business/'), 'business')
-})
-
-test('Redis 只收录一套正文，两边入口复用相同目录并可自动发现新增文章', t => {
+test('任意技术栈可添加、改名与移除风格标记，不依赖 MySQL 特例', t => {
   const { root, write } = fixture(t)
-  write('mysql/index.md', '# MySQL')
-  write('redis/index.md', '# Redis 知识库')
-  write('redis/01-distributed/index.md', '# 分布式缓存')
-  write('redis/01-distributed/01-persistence.md', '# 1. Redis 持久化')
-  write('knowledge/mysql/index.md', '# MySQL 知识体系')
-  write('knowledge/redis/index.md', '# Redis 原入口')
-  let libraries = readLibraries(root)
-  const redis = catalog => catalog.find(topic => topic.id === 'redis')
-  assert.deepEqual(libraries.knowledge.map(topic => topic.id), ['mysql', 'redis'])
-  assert.deepEqual(redis(libraries.knowledge), redis(libraries.business))
-  assert.equal(redis(libraries.knowledge).link, '/redis/')
-  assert.equal(switchLibrary('/knowledge/redis/', libraries), '/redis/')
-  write('redis/01-distributed/02-replication.md', '# 2. Redis 主从')
-  libraries = readLibraries(root)
-  assert.equal(redis(libraries.knowledge).items[1].items.at(-1).link, '/redis/01-distributed/02-replication')
+  write('redis/index.md', '# Redis')
+  write('redis/01-internals/index.md', '# 原理篇\n\nstyle: 正文不是元数据')
+  write('redis/notes/index.md', '---\nstyle: "速查型"\n---\n# Redis 速查')
+  let topic = readCatalog(root)[0]
+  assert.deepEqual(topic.styles.map(style => style.text), ['速查型'])
+  assert.equal(topic.items[1].text, '原理篇')
+  write('redis/notes/index.md', '---\nstyle: 排障型\n---\n# Redis 排障')
+  assert.equal(readCatalog(root)[0].styles[0].text, '排障型')
+  unlinkSync(join(root, 'redis/notes/index.md'))
+  topic = readCatalog(root)[0]
+  assert.equal(topic.styles.length, 0)
+  assert.equal(topic.items.length, 2)
 })
 
-test('共享 Redis 可从两种风格搜索，Redis 页面只显示本专题结果', t => {
-  const previous = globalThis.window
-  t.after(() => { if (previous === undefined) delete globalThis.window; else globalThis.window = previous })
-  const business = { id: '/mysql/06-transactions.html#section' }
-  const knowledge = { id: '/knowledge/mysql/01-basics/06-transactions.html#section' }
+test('路由按技术栈与风格定位，章节目录及相似前缀不会误匹配', t => {
+  const { root, write } = fixture(t)
+  write('mysql/index.md', '# MySQL 知识库')
+  write('mysql/scenarios/index.md', '---\nstyle: 业务型\n---\n# MySQL 业务')
+  write('redis/index.md', '# Redis')
+  const topics = readCatalog(root)
+  const standard = scopeForPath('/mysql/01-basics/02-sql', topics)
+  assert.equal(standard.text, '知识体系型')
+  assert.equal(standard.style, undefined)
+  assert.deepEqual(standard.excluded, ['/mysql/scenarios/'])
+  for (const path of ['/mysql/scenarios/', '/mysql/scenarios', '/mysql/scenarios/01-orders.html#intro']) {
+    const scope = scopeForPath(path, topics)
+    assert.equal(scope.text, '业务型')
+    assert.equal(scope.base, '/mysql/scenarios/')
+    assert.deepEqual(scope.excluded, [])
+  }
+  assert.equal(scopeForPath('/mysql/scenarios-extra/', topics).style, undefined)
+  assert.equal(scopeForPath('/redis/', topics).topic.id, 'redis')
+  assert.equal(scopeForPath('/', topics), null)
+  assert.equal(scopeForPath('/unknown/', topics), null)
+})
+
+test('搜索隔离嵌套风格，首页可查全部，序列化函数不依赖模块闭包', t => {
+  const previous = globalThis.document
+  t.after(() => { if (previous === undefined) delete globalThis.document; else globalThis.document = previous })
+  const business = { id: '/mysql/scenarios/06-transactions.html#section' }
+  const knowledge = { id: '/mysql/01-basics/06-transactions.html#section' }
   const redis = { id: '/redis/01-distributed/01-persistence.html#section' }
   const results = [business, knowledge, redis]
-  globalThis.window = { location: { pathname: '/knowledge/mysql/' } }
-  assert.deepEqual(results.filter(searchInCurrentLibrary), [knowledge, redis])
-  window.location.pathname = '/mysql/'
-  assert.deepEqual(results.filter(searchInCurrentLibrary), [business, redis])
-  for (const path of ['/redis/', '/redis/04-internals/05-resp', '/knowledge/redis/']) {
-    window.location.pathname = path
-    assert.deepEqual(results.filter(searchInCurrentLibrary), [redis])
+  let context = null
+  globalThis.document = { querySelector: () => context }
+  const filter = new Function('return (' + searchInCurrentScope.toString() + ')')()
+  assert.deepEqual(results.filter(filter), results)
+  for (const [base, excluded, expected] of [
+    ['/mysql/', ['/mysql/scenarios/'], [knowledge]],
+    ['/mysql/scenarios/', [], [business]],
+    ['/redis/', [], [redis]]
+  ]) {
+    context = { dataset: { searchScope: base, searchExcluded: JSON.stringify(excluded) } }
+    assert.deepEqual(results.filter(filter), expected)
   }
-  window.location.pathname = '/'
-  assert.deepEqual(results.filter(searchInCurrentLibrary), results)
+  context = null
+  assert.deepEqual(results.filter(filter), results)
+  delete globalThis.document
+  assert.deepEqual(results.filter(filter), results)
 })

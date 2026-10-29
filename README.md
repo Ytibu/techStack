@@ -1,29 +1,27 @@
 # Java 后端知识库
 
-使用 VitePress 默认主题的中文知识库。MySQL 保留业务型与知识体系型两套内容；Redis 只有一套正文，两边入口共用。技术栈按目录维护，新增 Markdown 自动进入相应目录与搜索。
+使用 VitePress 默认主题的中文知识库，面向已有基础、需要系统复习的 Java 后端开发者。所有技术栈默认采用知识体系型内容；其他风格作为该技术目录下的可选子目录维护。
 
-首页介绍项目并提供各技术栈入口。顶部按技术栈导航：`MySQL（业务型）` 中的 `MySQL` 链接到知识体系型首页，`业务型` 链接到业务型首页；Redis、RabbitMQ、Spring Boot 直接进入对应专题。其他专题优先链接知识体系型首页，没有对应页面时使用已有技术目录入口。
-
-MySQL 两套均已完成：业务型保留 11 篇正文与 20 问速记；知识体系型按三份原资料的十七章主线整理为 21 篇正文，另有分篇目录和资料说明。Redis 根据五份 Markdown 的原章节整理为 26 篇正文，覆盖分布式缓存、多级缓存、最佳实践、原理篇和注释版，另有分篇目录和资料说明。RabbitMQ、Spring Boot 暂为预留入口。
+首页、顶部导航、侧边栏和搜索范围从 Markdown 目录生成。只有技术栈存在其他风格时，首页和导航才显示括号中的额外入口；普通章节子目录不会被识别为另一种风格。
 
 ## 内容与地址
 
 | 内容 | 地址 | 维护目录 |
 | --- | --- | --- |
 | 总首页 | `/` | `docs/index.md` |
-| 业务型入口 | `/business/` | `docs/business/index.md` |
-| 业务型 MySQL | `/mysql/` | `docs/mysql/` |
-| 知识体系型入口 | `/knowledge/` | `docs/knowledge/index.md` |
-| 知识体系型 MySQL | `/knowledge/mysql/` | `docs/knowledge/mysql/` |
-| Redis 统一知识库 | `/redis/` | `docs/redis/` |
+| MySQL 知识体系 | `/mysql/` | `docs/mysql/` |
+| MySQL 业务型 | `/mysql/scenarios/` | `docs/mysql/scenarios/` |
+| Redis 知识体系 | `/redis/` | `docs/redis/` |
+| RabbitMQ 预留专题 | `/rabbitmq/` | `docs/rabbitmq/` |
+| Spring Boot 预留专题 | `/springboot/` | `docs/springboot/` |
 
-已有业务文章的地址保持有效。双风格正文上方可切换到另一风格的同技术栈首页；缺少对应技术栈时返回目标知识库入口。Redis 页面标识为“Redis 知识库”，不提供风格切换。两种入口的 Redis 目录均指向 `/redis/`，旧 `/knowledge/redis/` 页面保留前往统一正文的链接。
+MySQL 默认内容按三份原资料的十七章主线整理为 21 篇正文，业务型保留 11 篇正文与 20 问速记。Redis 根据五份 Markdown 整理为 26 篇正文，覆盖分布式缓存、多级缓存、最佳实践、原理篇和注释版。
 
-首页搜索覆盖全部内容；两种风格的搜索均包含共享 Redis；进入 Redis 页面后只搜索 Redis。
+原来的全局风格容器已移除。原知识体系型 MySQL 地址从 `/knowledge/mysql/` 改为 `/mysql/`，原业务文章移动到 `/mysql/scenarios/`；站内链接与目录同步更新，不再通过风格总入口中转。
 
 ## 本地使用
 
-环境：Node.js 20 或以上，已在 Node.js 24.12.0、npm 11.6.2 下验证。项目固定使用 VitePress 1.6.4，依赖版本由 package-lock.json 锁定。
+环境：Node.js 20 或以上。现有环境为 Node.js 24.12.0、npm 11.6.2；VitePress 固定为 1.6.4，依赖版本由 package-lock.json 锁定。
 
 ```sh
 npm ci
@@ -38,74 +36,89 @@ npm run build
 npm run preview
 ```
 
-构建产物位于 `docs/.vitepress/dist/`。预览展示上次构建的静态产物，修改 Markdown 后需要重新构建并重启预览服务；开发模式会自动更新。
+构建产物位于 `docs/.vitepress/dist/`。preview 展示上次构建的静态产物，修改后需要重新构建并重启预览；日常编辑可使用开发模式热更新。
 
-## 新增文档
-
-在对应风格、技术目录中加入 Markdown，并写好一级标题：
+## 目录约定
 
 ```text
 docs/
+  index.md
   mysql/
-    index.md
-    01-schema.md
+    index.md                 # 默认知识体系
+    01-basics/
+      index.md               # 普通章节，不产生其他风格入口
+      01-overview.md
+    scenarios/
+      index.md               # 标记 style 后识别为其他风格
+      01-schema.md
   redis/
     index.md
     01-distributed/
       index.md
       01-persistence.md
-  knowledge/
-    mysql/
-      index.md
-      01-basics/
-        index.md
-        01-overview.md
-        02-sql.md
 ```
+
+### 默认知识体系
+
+直接在技术目录下维护正文和章节。技术首页可用单行 `description` 说明首页显示的内容简介：
 
 ```md
-# 新知识点
+---
+description: 基础、索引、事务、锁与运维机制。
+---
 
-## 概念与结构
+# MySQL 知识体系
 
-按当前知识库风格编写正文。
+<KnowledgeCatalog topic="mysql" />
 ```
 
-- 文件名用英文和数字；页面、导航名称读取第一个一级标题。
-- 文件名按自然顺序排列，`index.md` 排第一；需要控制顺序时加数字前缀。
-- 支持嵌套目录，嵌套目录的 `index.md` 一级标题作为分组名称；没有 index 时用目录名。
-- 业务型技术目录位于 `docs/`，知识体系型位于 `docs/knowledge/`。新建技术目录并加入 Markdown 会自动增加入口；已知四个技术栈使用标准名称，其他默认使用目录名。
-- 业务型技术首页使用 `<KnowledgeCatalog topic="mysql" />`；知识体系型使用 `<KnowledgeCatalog library="knowledge" topic="mysql" />`。
-- Redis 只在 `docs/redis/` 增加正文，不在 `docs/knowledge/redis/` 复制；两边目录与搜索会自动引用统一内容。分篇目录使用 `<KnowledgeCatalog topic="redis" section="01-distributed" />`。
-- 知识体系型分组首页可增加 `section="01-basics"` 或 `section="02-advanced/02-indexes"`，自动列出该分组；`section` 是相对于技术目录的路径。
-- 技术目录没有 index 时，入口指向首篇文章；`public`、隐藏目录及 `business`、`knowledge` 入口目录不作为业务技术栈收录。
-- 开发模式新增、删除文章或修改标题，会自动刷新目录配置；正文修改使用普通热更新。正式静态站必须重新构建后才会包含新增文章。
+分组首页使用 `<KnowledgeCatalog topic="mysql" section="01-basics" />`。`section` 相对于当前风格的根目录；嵌套章节也可写为 `02-advanced/02-indexes`。
 
-不需要手动修改导航列表或文章目录。站点范围内的公开 Markdown 都会进入对应技术栈导航；草稿请放到 docs 外或隐藏目录。
+### 可选的其他风格
 
-## 目录说明
+在技术目录的直接子目录中创建 `index.md`，添加单行 `style` 字段：
+
+```md
+---
+style: 业务型
+---
+
+# MySQL 面试知识库
+
+<KnowledgeCatalog topic="mysql" />
+```
+
+目录名可以按内容命名，例如 `scenarios/`、`quick-reference/`；显示名称读取 `style`，不依赖固定目录名或特定技术栈。普通章节即使有 `index.md`，没有该标记就仍然属于默认知识体系。
+
+- 只在存在风格标记时显示额外入口，增加、改名、移除标记后自动更新。
+- 一个技术栈可有多个其他风格，各自维护正文、目录和上下篇。
+- 默认侧边栏排除其他风格，其他风格的侧边栏只显示自身正文。
+- 首页搜索覆盖全部；专题内搜索当前技术栈与当前风格，默认内容排除其他风格的结果。
+- 默认内容与其他风格的页面使用同一个目录组件，不需要手工填写文章清单。
+
+### 自动收录
+
+文件名优先英文和数字，页面标题读取首个一级标题；按自然顺序排列，`index.md` 优先。支持任意深度的普通章节，分组名读取该目录首页的一级标题。
+
+新增技术目录会自动进入首页和顶部导航。已知四个技术栈使用标准名称，其他技术栈默认使用目录名。技术目录没有首页时，入口指向首篇文章。
+
+隐藏目录和 `public/` 不收录。草稿应放在 docs 外或隐藏目录。新增、删除文章、修改标题或目录元数据会刷新导航和搜索，正文修改使用普通热更新。
+
+## 实现职责
 
 | 路径 | 职责 |
 | --- | --- |
-| `docs/mysql/` | 业务型 MySQL 正文、速记和资料说明 |
-| `docs/knowledge/mysql/` | 按原资料目录组织的知识体系型 MySQL |
-| `docs/redis/` | 按五份原文目录改编的统一 Redis 知识库 |
-| `docs/knowledge/redis/index.md` | 旧地址兼容入口，不维护第二套正文 |
-| 两套技术目录中的 RabbitMQ、Spring Boot | 后续技术栈的独立入口 |
-| `docs/.vitepress/catalog.mjs` | 扫描 Markdown，生成目录数据及监听目录变化 |
-| `docs/.vitepress/config.mjs` | VitePress 基础配置、本地搜索和自动导航 |
-| `docs/.vitepress/libraries.mjs` | 风格识别、同技术栈切换和搜索范围过滤 |
-| `docs/.vitepress/theme/` | 自动分层目录、当前知识库标识与切换，复用默认主题 |
-| `tests/` | 自动目录、双库隔离、共享 Redis、切换与搜索范围测试 |
+| `docs/.vitepress/catalog.mjs` | 扫描技术栈、章节、可选风格及元数据，监听目录变化 |
+| `docs/.vitepress/catalog.data.mjs` | 向页面组件提供统一目录数据 |
+| `docs/.vitepress/scopes.mjs` | 根据当前路由定位技术栈和风格，过滤搜索结果 |
+| `docs/.vitepress/config.mjs` | 默认主题、本地搜索、自动导航和独立侧边栏 |
+| `docs/.vitepress/theme/` | 通用技术导航、专题上下文、首页入口及分层目录 |
+| `tests/catalog.test.mjs` | 自动收录、可选风格识别、路由及搜索隔离测试 |
 
-## 内容维护原则
+## 内容维护
 
-业务型按问题组织，优先解释结论、原因、做法与边界。知识体系型参考原资料目录，按知识点自然组织概念、机制和联系，不强制安排导入、结束或额外的前置学习模板。两套正文不互相依赖。
+知识体系型参考原资料目录，解释概念、机制和联系，压缩安装、完整项目操作和重复演示。业务型按问题组织，保留结论、原因、做法和边界。来源对应、补充与校正保存在各专题的资料说明中。
 
-Redis 面向已有基础、需要系统复习的读者，保留原文目录和解释顺序，压缩长篇概念与工程操作。相似目录或标题的重复资料直接跳过，不合并；五份来源、章节映射与必要校正见 `docs/redis/99-sources.md`。未纳入本次范围的实战篇不另行扩写。
+Redis 的相似目录或标题资料直接跳过，不合并；本次未纳入额外实战篇。原资料保留在原位置，仓库不复制大文件，站点运行也不依赖原 PDF、图片或提取工具。
 
-两套都面向 Java 后端开发者，保留必要原理，省略环境安装、部署和完整项目操作；知识体系型运维篇适当压缩纯运维内容。PDF 来源、补充与校正在文末说明。旧样章和自拟大纲已移除，版本历史仍可从 Git 查询。
-
-本次 PDF 原文件保留在原目录，仓库不复制大文件。提取的中间文本与临时验证文件位于忽略的 `.work/`，站点运行不依赖 PDF 或 Python。
-
-本次检查结果、排查过程和未验证范围见 [验证记录](./VALIDATION.md)。
+验证过程、排查记录和未验证范围见 [验证记录](./VALIDATION.md)。

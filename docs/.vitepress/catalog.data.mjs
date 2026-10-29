@@ -1,6 +1,6 @@
-import { readLibraries } from './catalog.mjs'
+import { readCatalog } from './catalog.mjs'
 
 export default {
   watch: ['../**/*.md'],
-  load() { return readLibraries() }
+  load() { return readCatalog() }
 }
